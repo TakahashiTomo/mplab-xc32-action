@@ -41,7 +41,6 @@ RUN wget -nv -O /work/xc32.run \
  && /work/xc32.run \
       --mode unattended \
       --unattendedmodeui minimal \
-      --agreeToLicense yes \
       --netservername localhost \
       --LicenseType FreeMode \
       --prefix "/opt/microchip/xc32/v${X32_VERSION}" \
