@@ -1,14 +1,16 @@
-FROM ubuntu:20.04
+FROM ubuntu:22.04
 
 ARG X32_VERSION=4.45
 ARG DFP_PACKS=""
 ENV DEBIAN_FRONTEND=noninteractive
 ENV TMPDIR=/work
 
-# APT 高信頼化（ミラー切替 + リトライ）
+# -----------------------------------------------------
+# APT を堅牢化（ミラー切替 + リトライ）
+# -----------------------------------------------------
 RUN set -eux; \
     try_update() { for i in 1 2 3; do apt-get update -qq && return 0 || sleep 5; done; return 1; }; \
-    try_install() { PKGS="$@"; for i in 1 2 3; do apt-get install -y -qq --no-install-recommends $PKGS && return 0 || sleep 5; done; return 1; }; \
+    try_install() { for i in 1 2 3; do apt-get install -y -qq --no-install-recommends "$@" && return 0 || sleep 5; done; return 1; }; \
     if ! try_update; then \
       sed -i 's|http://archive.ubuntu.com|http://azure.archive.ubuntu.com|g' /etc/apt/sources.list; \
       if ! try_update; then \
@@ -17,43 +19,37 @@ RUN set -eux; \
       fi; \
     fi
 
-# Install XC32 required dependencies
-RUN dpkg --add-architecture i386 && \
-    apt-get update -qq && \
-    apt-get install -y -qq --no-install-recommends \
-      libc6:i386 libstdc++6:i386 zlib1g:i386 \
-      libx11-6:i386 libxext6:i386 libxi6:i386 \
-      libxtst6:i386 libxrender1:i386 && \
+# -----------------------------------------------------
+# 必要ツール（最小限）
+# -----------------------------------------------------
+RUN try_install wget tar xz-utils libusb-1.0-0 make gcc && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Install tools
-RUN apt-get update -qq && apt-get install -y -qq \
-      wget tar xz-utils libusb-1.0-0 make gcc && \
-    apt-get clean && rm -rf /var/lib/apt/lists/*
-
-# Work directory
+# 作業ディレクトリ（巨大インストーラ展開用）
 RUN mkdir -p /work && chmod 777 /work
 
-# Install XC32
+# -----------------------------------------------------
+# XC32 (v4.45) を無人インストール
+# -----------------------------------------------------
 RUN wget -nv -O /work/xc32.run \
-      "https://ww1.microchip.com/downloads/aemDocuments/documents/DEV/ProductDocuments/SoftwareTools/xc32-v${X32_VERSION}-full-install-linux-x64-installer.run" && \
-    chmod +x /work/xc32.run && \
-    /work/xc32.run \
-       --mode unattended \
-       --unattendedmodeui minimal \
-       --agreeToLicense yes \
-       --netservername localhost \
-       --LicenseType FreeMode \
-       --prefix "/opt/microchip/xc32/v${X32_VERSION}" && \
-    rm -f /work/xc32.run
+      "https://ww1.microchip.com/downloads/aemDocuments/documents/DEV/ProductDocuments/SoftwareTools/xc32-v${X32_VERSION}-full-install-linux-x64-installer.run" \
+ && chmod +x /work/xc32.run \
+ && /work/xc32.run \
+      --mode unattended \
+      --unattendedmodeui minimal \
+      --agreeToLicense yes \
+      --netservername localhost \
+      --LicenseType FreeMode \
+      --prefix "/opt/microchip/xc32/v${X32_VERSION}" \
+ && rm -f /work/xc32.run
 
-# Install DFPs (CMSIS/SAMV71)
-RUN if [ -n "$DFP_PACKS" ]; then \
-      for p in $(echo "$DFP_PACKS" | tr "," "\n"); do \
-        echo "DFP: installing $p"; \
-      done; \
-    fi
+# -----------------------------------------------------
+# DFP（packs）: 必要なら引数で渡す（CMSIS/SAMV71_DFP 等）
+# ここでは値をログするのみ。実際の取得はCI側のアクション/スクリプトで行う想定。
+# -----------------------------------------------------
+RUN if [ -n "$DFP_PACKS" ]; then echo "DFP_PACKS=$DFP_PACKS"; fi
 
+# ビルドスクリプト（プロジェクトに合わせて用意）
 COPY build.sh /build.sh
 RUN chmod +x /build.sh
 
