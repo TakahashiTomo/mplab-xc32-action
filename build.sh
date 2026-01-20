@@ -34,50 +34,28 @@ fi
 echo "Resolved project dir: ${PROJECT_DIR}"
 
 # ------------------------------------------------------------------------------
-# Generate Linux Makefile (TAB preserved)
+# Copy Linux Makefile (never generate inline)
 # ------------------------------------------------------------------------------
-LINUX_MK="${PROJECT_DIR}/nbproject/Makefile-${CONFIG}.mk"
-VAR_MK="${PROJECT_DIR}/nbproject/Makefile-variables.mk"
+SRC_LINUX_MK="${PROJECT_DIR}/nbproject/Makefile-${CONFIG}-linux.mk"
+DST_MK="${PROJECT_DIR}/nbproject/Makefile-${CONFIG}.mk"
 
-if [[ ! -f "${VAR_MK}" ]]; then
-  echo "Error: ${VAR_MK} not found"
+if [[ ! -f "${SRC_LINUX_MK}" ]]; then
+  echo "Error: Linux Makefile template not found: ${SRC_LINUX_MK}"
   exit 2
 fi
 
-cat > "${LINUX_MK}" << 'EOF'
-# Linux sanitized Makefile (CI auto‑generated)
-SHELL=/bin/sh
-
-XC32_DIR=/opt/microchip/xc32/v4.45
-MP_CC=$(XC32_DIR)/bin/xc32-gcc
-MP_CPPC=$(XC32_DIR)/bin/xc32-g++
-MP_AS=$(XC32_DIR)/bin/xc32-as
-MP_LD=$(XC32_DIR)/bin/xc32-ld
-MP_AR=$(XC32_DIR)/bin/xc32-ar
-
-PATH:=$(XC32_DIR)/bin:$(PATH)
-DEP_GEN=echo "Skipping dependency generation"
-
-CMSIS_DIR=
-DFP_DIR=
-
-include nbproject/Makefile-variables.mk
-
-.build-conf:
-    $(MAKE) -f Makefile CONF=$(CONF) build
-
-.build-impl:
-    $(MAKE) -f Makefile CONF=$(CONF) build
-EOF
-
-echo "[OK] Linux Makefile generated: ${LINUX_MK}"
+cp "${SRC_LINUX_MK}" "${DST_MK}"
+echo "[OK] Copied Linux Makefile to ${DST_MK}"
 
 # ------------------------------------------------------------------------------
-# CRLF remove
+# Remove CRLF
 # ------------------------------------------------------------------------------
-sed -i 's/\r$//' "${LINUX_MK}"
-sed -i 's/\r$//' "${VAR_MK}"
+sed -i 's/\r$//' "${DST_MK}"
+sed -i 's/\r$//' "${PROJECT_DIR}/nbproject/Makefile-variables.mk"
 
+# ------------------------------------------------------------------------------
+# PATH / packs
+# ------------------------------------------------------------------------------
 XC32_BIN="/opt/microchip/xc32/v4.45/bin"
 export PATH="${XC32_BIN}:${PATH}"
 export DFP_PACKS="${PACKS}"
@@ -86,7 +64,7 @@ export DFP_PACKS="${PACKS}"
 # Build
 # ------------------------------------------------------------------------------
 if [[ ! -f "${PROJECT_DIR}/Makefile" ]]; then
-  echo "Error: Root Makefile not found."
+  echo "Error: Root Makefile missing."
   exit 3
 fi
 
