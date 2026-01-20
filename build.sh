@@ -10,9 +10,6 @@ echo "Project (raw): ${PROJECT_RAW}"
 echo "Configuration : ${CONFIG}"
 echo "Packs         : ${PACKS}"
 
-# ------------------------------------------------------------------------------
-# 1) プロジェクトパス解決
-# ------------------------------------------------------------------------------
 WS="/github/workspace"
 CANDIDATES=("${PROJECT_RAW}" "${WS}/${PROJECT_RAW}")
 
@@ -30,14 +27,14 @@ for p in "${CANDIDATES[@]}"; do
 done
 
 if [[ -z "${PROJECT_DIR}" ]]; then
-  echo "Error: Project directory not found in candidates:"
-  printf '  - %s\n' "${CANDIDATES[@]}"
+  echo "Error: Project directory not found."
   exit 1
 fi
-echo "Resolved project directory: ${PROJECT_DIR}"
+
+echo "Resolved project dir: ${PROJECT_DIR}"
 
 # ------------------------------------------------------------------------------
-# 2) Linux 版 Makefile を CI 上で強制生成（Windows 汚染を完全除去）
+# Generate Linux Makefile (TAB preserved)
 # ------------------------------------------------------------------------------
 LINUX_MK="${PROJECT_DIR}/nbproject/Makefile-${CONFIG}.mk"
 VAR_MK="${PROJECT_DIR}/nbproject/Makefile-variables.mk"
@@ -47,13 +44,10 @@ if [[ ! -f "${VAR_MK}" ]]; then
   exit 2
 fi
 
-# 上書き生成
 cat > "${LINUX_MK}" << 'EOF'
-# Linux‑sanitized Makefile (CI auto‑generated)
-
+# Linux sanitized Makefile (CI auto‑generated)
 SHELL=/bin/sh
 
-# XC32 toolchain
 XC32_DIR=/opt/microchip/xc32/v4.45
 MP_CC=$(XC32_DIR)/bin/xc32-gcc
 MP_CPPC=$(XC32_DIR)/bin/xc32-g++
@@ -62,8 +56,6 @@ MP_LD=$(XC32_DIR)/bin/xc32-ld
 MP_AR=$(XC32_DIR)/bin/xc32-ar
 
 PATH:=$(XC32_DIR)/bin:$(PATH)
-
-# Skip Java-based dependency extractor
 DEP_GEN=echo "Skipping dependency generation"
 
 CMSIS_DIR=
@@ -78,26 +70,23 @@ include nbproject/Makefile-variables.mk
     $(MAKE) -f Makefile CONF=$(CONF) build
 EOF
 
-echo "[OK] Linux Makefile (${LINUX_MK}) written"
+echo "[OK] Linux Makefile generated: ${LINUX_MK}"
 
 # ------------------------------------------------------------------------------
-# 3) CRLF を強制除去（Windows 由来の改行を完全削除）
+# CRLF remove
 # ------------------------------------------------------------------------------
 sed -i 's/\r$//' "${LINUX_MK}"
 sed -i 's/\r$//' "${VAR_MK}"
 
-# ------------------------------------------------------------------------------
-# 4) PATH / パック設定
-# ------------------------------------------------------------------------------
 XC32_BIN="/opt/microchip/xc32/v4.45/bin"
 export PATH="${XC32_BIN}:${PATH}"
 export DFP_PACKS="${PACKS}"
 
 # ------------------------------------------------------------------------------
-# 5) Makefile の存在最終確認
+# Build
 # ------------------------------------------------------------------------------
 if [[ ! -f "${PROJECT_DIR}/Makefile" ]]; then
-  echo "Error: Top-level Makefile not found inside project"
+  echo "Error: Root Makefile not found."
   exit 3
 fi
 
