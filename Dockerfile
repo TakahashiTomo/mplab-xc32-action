@@ -15,38 +15,35 @@ RUN set -eux; \
     if ! try_update; then \
       sed -i 's|http://archive.ubuntu.com|http://azure.archive.ubuntu.com|g' /etc/apt/sources.list; \
       if ! try_update; then \
-        sed-i 's|http://azure.archive.ubuntu.com|http://mirrors.cloudflare.com/ubuntu|g' /etc/apt/sources.list; \
+        sed -i 's|http://azure.archive.ubuntu.com|http://mirrors.cloudflare.com/ubuntu|g' /etc/apt/sources.list; \
         try_update; \
       fi; \
     fi; \
+    # ←←← ここに ca-certificates を追加するのが超重要！
     try_install \
+      ca-certificates \
       wget tar xz-utils libusb-1.0-0 make gcc \
       libx11-6 libxext6 libxrender1 libxi6 libxtst6 libxrandr2 \
       libgtk2.0-0 libglib2.0-0 ; \
+    update-ca-certificates; \
     apt-get clean; rm -rf /var/lib/apt/lists/*
 
-# InstallAnywhere の巨大展開用ディレクトリ
 RUN mkdir -p /work && chmod 777 /work
 
 # -----------------------------------------------------
-# XC32 インストール (InstallAnywhere, 要 X11 libs)
+# XC32 インストール
 # -----------------------------------------------------
 RUN wget -nv -O /work/xc32.run \
       "https://ww1.microchip.com/downloads/aemDocuments/documents/DEV/ProductDocuments/SoftwareTools/xc32-v${X32_VERSION}-full-install-linux-x64-installer.run" \
  && chmod +x /work/xc32.run \
  && /work/xc32.run \
-       --mode unattended \
-       --unattendedmodeui minimal \
-       --agreeToLicense yes \
-       --netservername localhost \
-       --LicenseType FreeMode \
-       --prefix "/opt/microchip/xc32/v${X32_VERSION}" \
+      --mode unattended \
+      --unattendedmodeui minimal \
+      --agreeToLicense yes \
+      --netservername localhost \
+      --LicenseType FreeMode \
+      --prefix "/opt/microchip/xc32/v${X32_VERSION}" \
  && rm -f /work/xc32.run
-
-# -----------------------------------------------------
-# DFP packs
-# -----------------------------------------------------
-RUN if [ -n "$DFP_PACKS" ]; then echo "DFP_PACKS=$DFP_PACKS"; fi
 
 COPY build.sh /build.sh
 RUN chmod +x /build.sh
