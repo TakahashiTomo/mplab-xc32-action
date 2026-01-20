@@ -1,19 +1,23 @@
-name: MPLABX v6.20 and XC32 v4.45 Compiler Action
-description: This action builds a MPLAB X / XC32 project in a Linux container.
-branding:
-  icon: package
-  color: gray-dark
+
+name: 'MPLAB XC32 Build Action'
+description: 'Build MPLAB XC32 project inside Docker container'
+
 inputs:
   project:
-    description: Project folder location
+    description: 'Path to MPLAB-X project'
     required: true
   configuration:
-    description: Configuration to build
+    description: 'Configuration name'
     required: true
-    default: default
+  packs:
+    description: 'DFP/ CMSIS Packs'
+    required: false
+    default: ""
+
 runs:
-  using: docker
-  image: Dockerfile
+  using: 'docker'
+  image: 'Dockerfile'
   args:
     - ${{ inputs.project }}
     - ${{ inputs.configuration }}
+    - ${{ inputs.packs }}
