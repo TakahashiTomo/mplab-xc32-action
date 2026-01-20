@@ -1,4 +1,3 @@
-
 #!/bin/bash
 set -euo pipefail
 
@@ -11,18 +10,11 @@ echo "Project: ${PROJECT}"
 echo "Configuration: ${CONFIG}"
 echo "Packs: ${PACKS}"
 
-# DFP packs を環境変数として渡す（必要なら使う）
 export DFP_PACKS="${PACKS}"
 
-# Makefile が存在するか確認
 if [ ! -d "$PROJECT" ]; then
     echo "Error: Project directory not found: $PROJECT"
     exit 1
-fi
-
-if [ ! -f "$PROJECT/Makefile" ] && [ ! -f "$PROJECT/nbproject/Makefile-${CONFIG}.mk" ]; then
-    echo "Error: No Makefile found inside project $PROJECT"
-    exit 2
 fi
 
 echo "=== Building with make ==="
