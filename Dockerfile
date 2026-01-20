@@ -4,7 +4,6 @@ FROM ubuntu:22.04
 ARG X32_VERSION=4.45
 ARG DFP_PACKS=""
 ENV DEBIAN_FRONTEND=noninteractive
-ENV TMPDIR=/work
 
 # -----------------------------------------------------
 # APT ミラー切替 + リトライ + 必須パッケージ
@@ -19,7 +18,6 @@ RUN set -eux; \
         try_update; \
       fi; \
     fi; \
-    # ←←← ここに ca-certificates を追加するのが超重要！
     try_install \
       ca-certificates \
       wget tar xz-utils libusb-1.0-0 make gcc \
@@ -28,7 +26,11 @@ RUN set -eux; \
     update-ca-certificates; \
     apt-get clean; rm -rf /var/lib/apt/lists/*
 
+# -----------------------------------------------------
+# InstallAnywhere用ディレクトリの作成（apt後に作成）
+# -----------------------------------------------------
 RUN mkdir -p /work && chmod 777 /work
+ENV TMPDIR=/work
 
 # -----------------------------------------------------
 # XC32 インストール
