@@ -10,14 +10,28 @@ inputs:
     description: 'Configuration name'
     required: true
   packs:
-    description: 'DFP/ CMSIS Packs'
+    description: 'DFP/CMSIS packs (e.g., "CMSIS=5.8.0,SAMV71_DFP=4.10.230")'
     required: false
     default: ""
 
 runs:
-  using: 'docker'
-  image: './Dockerfile'
-  args:
-    - ${{ inputs.project }}
-    - ${{ inputs.configuration }}
-    - ${{ inputs.packs }}
+  using: "composite"
+  steps:
+    # 1) アクションのルート（この action.yml があるディレクトリ）で Docker イメージをビルド
+    - name: Build xc32 action image
+      shell: bash
+      run: |
+        set -eux
+        # $GITHUB_ACTION_PATH は、このアクションのファイル一式（Dockerfile/ build.sh / action.yml）があるディレクトリ
+        docker build -t xc32-action:latest "$GITHUB_ACTION_PATH"
+
+    # 2) そのイメージでコンテナを起動し、3 引数を確実に渡して実行
+    - name: Run xc32 build
+      shell: bash
+      run: |
+        set -eux
+        docker run --rm \
+          -v "$GITHUB_WORKSPACE":/github/workspace \
+          -w /github/workspace \
+          xc32-action:latest \
+          "${{ inputs.project }}" "${{ inputs.configuration }}" "${{ inputs.packs }}"
